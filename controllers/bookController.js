@@ -33,7 +33,12 @@ exports.index = asyncHandler(async (req, res, next) => {
 
 // Display list of all books.
 exports.book_list = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Book list");
+  const allBooks = await Book.find({}, "title author") //- to return only the title and author (will also return the _id and virtual fields)
+    .sort({ title: 1 }) //- sorting the results by the title alphabetically 
+    .populate("author") //- this will replace the stored book author id with the full author details
+    .exec();
+
+  res.render("book_list", { title: "Book List", book_list: allBooks });
 });
 
 // Display detail page for a specific book.

@@ -14,3 +14,6 @@ block content
     li #[strong Copies available:] !{book_instance_available_count}
     li #[strong Authors:] !{author_count}
     li #[strong Genres:] !{genre_count}
+
+//- Note: We didn't escape the count values (i.e. we used the !{} syntax) because the count values are calculated. 
+//- If the information was supplied by end-users then we'd escape the variable for display.
