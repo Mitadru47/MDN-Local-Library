@@ -4,6 +4,14 @@ const Book = require("../models/book");
 // express-async-handler defines a wrapper function that hides the try-catch block and the code to forward the error.
 const asyncHandler = require("express-async-handler");
 
+// express-validator is a set of express.js middlewares that wraps the extensive collection of validators and sanitizers 
+// offered by validator.js.
+
+// It allows you to combine them in many ways so that you can validate and sanitize your express requests, and offers tools
+// to determine if the request is valid or not, which data was matched according to your validators, and so on.
+
+const { body, validationResult } = require("express-validator");
+
 // Display list of all Authors.
 exports.author_list = asyncHandler(async (req, res, next) => {
   const allAuthors = await Author.find().sort({ family_name: 1 }).exec();
@@ -37,13 +45,83 @@ exports.author_detail = asyncHandler(async (req, res, next) => {
   
 // Display Author create form on GET.
 exports.author_create_get = asyncHandler(async (req, res, next) => {
-    res.send("NOT IMPLEMENTED: Author create GET");
+  res.render("author_form", { title: "Create Author" });
 });
   
 // Handle Author create on POST.
-exports.author_create_post = asyncHandler(async (req, res, next) => {
-    res.send("NOT IMPLEMENTED: Author create POST");
-});
+exports.author_create_post = [
+  // Validate and sanitize fields.
+  body("first_name")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("First name must be specified.")
+    .isAlphanumeric()
+    .withMessage("First name has non-alphanumeric characters."),
+
+    // We can daisy chain validators, using withMessage() to specify the error message to display if the previous validation
+    // method fails. This makes it very easy to provide specific error messages without lots of code duplication. 
+
+    // Warning: Never validate names using isAlphanumeric() (as we have done above) as there are many names 
+    // that use other character sets. We do it here in order to demonstrate how the validator is used, and how it 
+    // can be daisy-chained with other validators and error reporting.  
+
+  body("family_name")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("Family name must be specified.")
+    .isAlphanumeric()
+    .withMessage("Family name has non-alphanumeric characters."),
+  body("date_of_birth", "Invalid date of birth")
+    .optional({ values: "falsy" })
+    .isISO8601()
+    .toDate(),
+  body("date_of_death", "Invalid date of death")
+    .optional({ values: "falsy" })
+    .isISO8601()
+    .toDate(),
+
+    // We can use the optional() function to run a subsequent validation only if a field has been entered 
+    // (this allows us to validate optional fields).
+
+    // For example, below we check that the optional date of birth is an ISO8601-compliant date 
+    // (the { values: "falsy" } object passed means that we'll accept either an empty string or null as an empty value). 
+
+    // Parameters are received from the request as strings. We can use toDate() (or toBoolean()) to cast these 
+    // to the proper JavaScript types (as shown at the end of the validator chain above).
+
+  // Process request after validation and sanitization.
+  asyncHandler(async (req, res, next) => {
+    // Extract the validation errors from a request.
+    const errors = validationResult(req);
+
+    // Create Author object with escaped and trimmed data
+    const author = new Author({
+      first_name: req.body.first_name,
+      family_name: req.body.family_name,
+      date_of_birth: req.body.date_of_birth,
+      date_of_death: req.body.date_of_death,
+    });
+
+    if (!errors.isEmpty()) {
+      // There are errors. Render form again with sanitized values/errors messages.
+      res.render("author_form", {
+        title: "Create Author",
+        author: author,
+        errors: errors.array(),
+      });
+      return;
+    } else {
+      // Data from form is valid.
+
+      // Save author.
+      await author.save();
+      // Redirect to new author record.
+      res.redirect(author.url);
+    }
+  }),
+];
 
 // Display Author delete form on GET.
 exports.author_delete_get = asyncHandler(async (req, res, next) => {
