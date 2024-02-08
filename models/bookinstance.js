@@ -47,5 +47,12 @@ BookInstanceSchema.virtual("due_back_formatted").get(function () {
 // In this case we use fromJSDate() to import a JavaScript date string and toLocaleString() to output the date in 
 // DATE_MED format in English: Apr 10th, 2023
 
+BookInstanceSchema.virtual("due_back_yyyy_mm_dd").get(function () {
+  return DateTime.fromJSDate(this.due_back).toISODate(); // format 'YYYY-MM-DD'
+});
+
+// The date value has to be set in the format YYYY-MM-DD because this is expected by <input> elements with type="date",
+// however the date is not stored in this format so we have to convert it before setting the value in the control. 
+
 // Export model
 module.exports = mongoose.model("BookInstance", BookInstanceSchema);
